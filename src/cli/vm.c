@@ -72,9 +72,9 @@ static bool isDirectory(Path* path)
   
   if (strstr(path->chars, "use_nearest_modules_dir") != NULL)
   {
-    printf("isDirectory(%s) request.result %ld, S_ISDIR %d mode %llu\n",
-           path->chars, request.result, S_ISDIR(request.statbuf.st_mode),
-           request.statbuf.st_mode);
+    printf("isDirectory(%s) request.result %ld, S_ISDIR %d mode %ld\n",
+           path->chars, (long)request.result, (int)S_ISDIR(request.statbuf.st_mode),
+           (long)request.statbuf.st_mode);
   }
   
   uv_fs_req_cleanup(&request);
