@@ -67,9 +67,15 @@ static bool isDirectory(Path* path)
 {
   uv_fs_t request;
   uv_fs_stat(loop, &request, path->chars, NULL);
-  // TODO: Check request.result value?
   
   bool result = request.result == 0 && S_ISDIR(request.statbuf.st_mode);
+  
+  if (strstr(path->chars, "use_nearest_modules_dir") != NULL)
+  {
+    printf("isDirectory(%s) request.result %ld, S_ISDIR %d mode %llu\n",
+           path->chars, request.result, S_ISDIR(request.statbuf.st_mode),
+           request.statbuf.st_mode);
+  }
   
   uv_fs_req_cleanup(&request);
   return result;
@@ -101,6 +107,11 @@ static void findModulesDirectory()
   // Keep walking up directories as long as we find them.
   for (;;)
   {
+    if (strstr(rootDirectory, "use_nearest_modules_dir") != NULL)
+    {
+      printf("look in %s\n", lastPath->chars);
+    }
+    
     Path* modulesDirectory = pathNew(searchDirectory->chars);
     pathJoin(modulesDirectory, "wren_modules");
     
