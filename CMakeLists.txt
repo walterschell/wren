@@ -41,26 +41,7 @@ set(wren_unit_test_SRCS
 
 # Linux Only for now
 include(ExternalProject)
-set(LibUV_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libuv")
-ExternalProject_Add(
-    "LibUV"
-    URL "${LibUV_SRC_DIR}"
-    CONFIGURE_COMMAND python2 gyp_uv.py -f make
-    BUILD_IN_SOURCE True
-    BUILD_COMMAND BUILDTYPE=Release make -C out libuv.a
-    INSTALL_COMMAND ""
-)
-set(LibUV_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR}/LibUV-prefix/src/LibUV/out/Release)
-
-add_library(libuv_static STATIC IMPORTED)
-set_target_properties(libuv_static PROPERTIES
-    IMPORTED_LOCATION ${LibUV_BIN_DIR}/libuv.a
-    INTERFACE_INCLUDE_DIRECTORIES ${LibUV_SRC_DIR}/include
-    INTERFACE_COMPILE_OPTIONS -pthread
-    INTERFACE_LINK_LIBRARIES -pthread
-)
-
-add_dependencies(libuv_static LibUV)
+add_subdirectory(deps/libuv)
 function(copy_to_dir target dest)
     set(test_bin_dir ${CMAKE_CURRENT_SOURCE_DIR}/bin)
     file(MAKE_DIRECTORY ${dest})
@@ -91,7 +72,7 @@ copy_to_dir(wren_cli ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 target_include_directories(wren_cli 
     PRIVATE src/cli src/module
 )
-target_link_libraries(wren_cli PRIVATE wren libuv_static)
+target_link_libraries(wren_cli PRIVATE wren uv_a)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set_target_properties(wren_cli PROPERTIES
         OUTPUT_NAME wrend
@@ -113,14 +94,14 @@ if (ENABLE_TESTING)
         PRIVATE src/cli src/module
     )
     target_link_libraries(wren_API_test
-        PRIVATE wren libuv_static)
+        PRIVATE wren uv_a)
 
     add_executable(wren_unit_test ${wren_unit_test_SRCS})
     target_include_directories(wren_unit_test
         PRIVATE src/cli src/module
     )
     target_link_libraries(wren_unit_test
-        PRIVATE wren libuv_static
+        PRIVATE wren uv_a
     )
 
     add_test(NAME UnitTest 
