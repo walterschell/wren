@@ -104,7 +104,12 @@ if (ENABLE_TESTING)
         PRIVATE wren uv_a
     )
 
-    add_test(NAME UnitTest 
+    add_test(NAME Unit_Test 
         COMMAND wren_unit_test
+    )
+
+    add_test(NAME API_Test
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/util/test.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif()
