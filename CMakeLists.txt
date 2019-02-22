@@ -1,7 +1,15 @@
 # Need transitive dependencies introduced in 2.8.12
 cmake_minimum_required(VERSION 2.8.12)
-option(ENABLE_TESTING "Build Tests" ON)
 project(Wren LANGUAGES "C")
+if (${CMAKE_PROJECT_NAME} STREQUAL "Wren")
+    option(WREN_BUILD_CLI "Build CLI" ON)
+    option(ENABLE_TESTING "Build Tests" ON)
+else()
+    option(WREN_BUILD_CLI "Build CLI" OFF)
+    option(ENABLE_TESTING "Build Tests" OFF)
+endif()
+
+
 
 set(wren_warning_flags "-Wall"
                        "-Wextra"
@@ -40,8 +48,7 @@ set(wren_unit_test_SRCS
 )
 
 # Linux Only for now
-include(ExternalProject)
-add_subdirectory(deps/libuv)
+
 function(copy_to_dir target dest)
     set(test_bin_dir ${CMAKE_CURRENT_SOURCE_DIR}/bin)
     file(MAKE_DIRECTORY ${dest})
@@ -67,49 +74,53 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     )
 endif()
 
-add_executable(wren_cli ${wren_CLI_SRCS})
-copy_to_dir(wren_cli ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-target_include_directories(wren_cli 
-    PRIVATE src/cli src/module
-)
-target_link_libraries(wren_cli PRIVATE wren uv_a)
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set_target_properties(wren_cli PROPERTIES
-        OUTPUT_NAME wrend
-    )
-else()
-    set_target_properties(wren_cli PROPERTIES
-        OUTPUT_NAME wren
-    )
-endif()
-
-if (ENABLE_TESTING)
-    enable_testing()
-    add_executable(wren_API_test ${wren_API_test_SRCS})
-    set_target_properties(wren_API_test PROPERTIES
-        OUTPUT_NAME "api_wrend"
-    )
-    copy_to_dir(wren_API_test ${CMAKE_CURRENT_BINARY_DIR}/debug/test)
-    target_include_directories(wren_API_test
+if(WREN_BUILD_CLI)
+    include(ExternalProject)
+    add_subdirectory(deps/libuv)
+    add_executable(wren_cli ${wren_CLI_SRCS})
+    copy_to_dir(wren_cli ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+    target_include_directories(wren_cli 
         PRIVATE src/cli src/module
     )
-    target_link_libraries(wren_API_test
-        PRIVATE wren uv_a)
+    target_link_libraries(wren_cli PRIVATE wren uv_a)
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set_target_properties(wren_cli PROPERTIES
+            OUTPUT_NAME wrend
+        )
+    else()
+        set_target_properties(wren_cli PROPERTIES
+            OUTPUT_NAME wren
+        )
+    endif()
 
-    add_executable(wren_unit_test ${wren_unit_test_SRCS})
-    target_include_directories(wren_unit_test
-        PRIVATE src/cli src/module
-    )
-    target_link_libraries(wren_unit_test
-        PRIVATE wren uv_a
-    )
+    if (ENABLE_TESTING)
+        enable_testing()
+        add_executable(wren_API_test ${wren_API_test_SRCS})
+        set_target_properties(wren_API_test PROPERTIES
+            OUTPUT_NAME "api_wrend"
+        )
+        copy_to_dir(wren_API_test ${CMAKE_CURRENT_BINARY_DIR}/debug/test)
+        target_include_directories(wren_API_test
+            PRIVATE src/cli src/module
+        )
+        target_link_libraries(wren_API_test
+            PRIVATE wren uv_a)
 
-    add_test(NAME Unit_Test 
-        COMMAND wren_unit_test
-    )
+        add_executable(wren_unit_test ${wren_unit_test_SRCS})
+        target_include_directories(wren_unit_test
+            PRIVATE src/cli src/module
+        )
+        target_link_libraries(wren_unit_test
+            PRIVATE wren uv_a
+        )
 
-    add_test(NAME API_Test
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/util/test.py
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    )
+        add_test(NAME Unit_Test 
+            COMMAND wren_unit_test
+        )
+
+        add_test(NAME API_Test
+            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/util/test.py
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        )
+    endif()
 endif()
