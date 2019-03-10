@@ -66,7 +66,7 @@ typedef const char* (*WrenResolveModuleFn)(WrenVM* vm,
     const char* importer, const char* name);
 
 // Loads and returns the source code for the module [name].
-typedef char* (*WrenLoadModuleFn)(WrenVM* vm, const char* name, void *loaderCtx);
+typedef char* (*WrenLoadModuleFn)(WrenVM* vm, const char* name, void* loaderCtx);
 
 // Returns a pointer to a foreign method on [className] in [module] with
 // [signature].

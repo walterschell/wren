@@ -8,7 +8,7 @@ else()
     option(WREN_BUILD_CLI "Build CLI" OFF)
     option(ENABLE_TESTING "Build Tests" OFF)
 endif()
-
+option(WREN_BUILD_WAUXLIB "Build Wauxlib" ON)
 
 
 set(wren_warning_flags "-Wall"
@@ -72,6 +72,10 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(wren 
         PUBLIC -DDEBUG
     )
+endif()
+
+if(WREN_BUILD_WAUXLIB)
+    add_subdirectory(src/wauxlib)
 endif()
 
 if(WREN_BUILD_CLI)
