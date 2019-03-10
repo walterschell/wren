@@ -66,13 +66,13 @@ typedef const char* (*WrenResolveModuleFn)(WrenVM* vm,
     const char* importer, const char* name);
 
 // Loads and returns the source code for the module [name].
-typedef char* (*WrenLoadModuleFn)(WrenVM* vm, const char* name);
+typedef char* (*WrenLoadModuleFn)(WrenVM* vm, const char* name, void *loaderCtx);
 
 // Returns a pointer to a foreign method on [className] in [module] with
 // [signature].
 typedef WrenForeignMethodFn (*WrenBindForeignMethodFn)(WrenVM* vm,
     const char* module, const char* className, bool isStatic,
-    const char* signature);
+    const char* signature, void* binderCtx);
 
 // Displays a string of text to the user.
 typedef void (*WrenWriteFn)(WrenVM* vm, const char* text);
@@ -123,7 +123,7 @@ typedef struct
 // Returns a pair of pointers to the foreign methods used to allocate and
 // finalize the data for instances of [className] in resolved [module].
 typedef WrenForeignClassMethods (*WrenBindForeignClassFn)(
-    WrenVM* vm, const char* module, const char* className);
+    WrenVM* vm, const char* module, const char* className, void* binderCtx);
 
 typedef struct
 {
@@ -175,6 +175,11 @@ typedef struct
   // should return NULL and Wren will report that as a runtime error.
   WrenLoadModuleFn loadModuleFn;
 
+  // The context passed to the loadModuleFn.
+  //
+  // This context is an opaque blob that is passed directly to the function.
+  void* loaderCtx;
+
   // The callback Wren uses to find a foreign method and bind it to a class.
   //
   // When a foreign method is declared in a class, this will be called with the
@@ -193,6 +198,11 @@ typedef struct
   // foreign functions uses to allocate and (optionally) finalize the bytes
   // stored in the foreign object when an instance is created.
   WrenBindForeignClassFn bindForeignClassFn;
+
+  // The context passed to the bindForeignMethodFn and bindForgeinClassFn.
+  //
+  // This context is an opaque blob that is passed directly to the function.
+  void* binderCtx;
 
   // The callback Wren uses to display text when `System.print()` or the other
   // related functions are called.

@@ -40,8 +40,10 @@ void wrenInitConfiguration(WrenConfiguration* config)
   config->reallocateFn = defaultReallocate;
   config->resolveModuleFn = NULL;
   config->loadModuleFn = NULL;
+  config->loaderCtx = NULL;
   config->bindForeignMethodFn = NULL;
   config->bindForeignClassFn = NULL;
+  config->binderCtx = NULL;
   config->writeFn = NULL;
   config->errorFn = NULL;
   config->initialHeapSize = 1024 * 1024 * 10;
@@ -301,7 +303,7 @@ static WrenForeignMethodFn findForeignMethod(WrenVM* vm,
   if (vm->config.bindForeignMethodFn != NULL)
   {
     method = vm->config.bindForeignMethodFn(vm, moduleName, className, isStatic,
-                                            signature);
+                                            signature, vm->config.binderCtx);
   }
   
   // If the host didn't provide it, see if it's an optional one.
@@ -546,7 +548,7 @@ static void bindForeignClass(WrenVM* vm, ObjClass* classObj, ObjModule* module)
   if (vm->config.bindForeignClassFn != NULL)
   {
     methods = vm->config.bindForeignClassFn(vm, module->name->value,
-                                            classObj->name->value);
+                                            classObj->name->value, vm->config.binderCtx);
   }
 
   // If the host didn't provide it, see if it's a built in optional module.
@@ -699,7 +701,8 @@ static Value importModule(WrenVM* vm, Value name)
   // Let the host try to provide the module.
   if (vm->config.loadModuleFn != NULL)
   {
-    source = vm->config.loadModuleFn(vm, AS_CSTRING(name));
+    source = vm->config.loadModuleFn(vm, AS_CSTRING(name),
+                                      vm->config.loaderCtx);
   }
   
   // If the host didn't provide it, see if it's a built in optional module.
