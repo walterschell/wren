@@ -197,15 +197,6 @@ static ModuleRegistry modules[] =
 // Looks for a built-in module with [name].
 //
 // Returns the BuildInModule for it or NULL if not found.
-static ModuleRegistry* findModule(const char* name)
-{
-  for (int i = 0; modules[i].name != NULL; i++)
-  {
-    if (strcmp(name, modules[i].name) == 0) return &modules[i];
-  }
-
-  return NULL;
-}
 
 // Looks for a class with [name] in [module].
 static ClassRegistry* findClass(ModuleRegistry* module, const char* name)
