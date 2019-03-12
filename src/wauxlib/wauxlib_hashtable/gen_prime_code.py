@@ -25,9 +25,29 @@ def gen_primes(num_primes):
         p += 2
     return result
 
+def lstr(l):
+    return map(lambda x: str(x), l)
+
+
+def prime_enum(primes):
+    result = "typedef enum {\n" \
+             "EMPTY_LIST,\n" 
+    for i in range(len(primes)):
+        result += "PRIME%02d,\n" % (i + 1)
+    result += "NUM_PRIMES\n} prime_index_t;\n"
+    return result
+
+def prime_list(primes):
+    result = "static int primes[NUM_PRIMES] = {0, "
+    result += ", ".join(lstr(primes)) + "};\n"
+    return result
+
 def main():
     primes = gen_primes(186)
     print(primes)
+    print(prime_enum(primes))
+    print(prime_list(primes))
+    print(probe_count(primes))
 
 if __name__ == '__main__':
     main()
