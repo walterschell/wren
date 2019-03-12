@@ -77,6 +77,20 @@ WrenForeignClassMethods wauxlibBindForeignClass(
                         const char* moduleName,
                         const char* className,
                         void *binderCtx);
+typedef struct
+{
+    
+} WauxlibBindCtx;
+
+#if 0
+void defaultBinderAddModule(WauxlibBindCtx *binderCtx, 
+                            char *moduleName,
+                            WrenLoadModuleFn moduleLoadModuleFn;
+                            void *moduleLoadModuleFnCtx;
+                            WrenBindForeignMethodFn moduleBindForeignMethodFn; 
+                            WrenBindForeignClassFn moduleBindForeignClassFn; 
+                            void *moduleBindForeignCtx);
+#endif
 
 
 #endif
