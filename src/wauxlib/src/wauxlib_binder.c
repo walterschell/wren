@@ -1,5 +1,6 @@
 #include <wauxlib.h>
 #include <string.h>
+#include <khash.h>
 
 static ModuleRegistry* findModule(const char* name, ModuleRegistry* modules)
 {
@@ -81,3 +82,53 @@ WrenForeignClassMethods wauxlibBindForeignClass(
   return methods;
 }
 
+WauxlibBinderCtx *defaultBinderNew()
+{
+  WauxlibBinderCtx *result = malloc(sizeof(WauxlibBinderCtx));
+  if (NULL == result)
+  {
+    return result;
+  }
+  result->modules = kh_init(modules_map);
+  return result;
+}
+void defaultBinderDelete(WauxlibBinderCtx *binderCtx)
+{
+  if (NULL == binderCtx)
+  {
+    return;
+  }
+  WauxlibModule *module;
+  kh_foreach_value(binderCtx->modules, module, {free(module);});
+  kh_destroy(modules_map, binderCtx->modules);
+  free(binderCtx);
+}
+
+bool defaultBinderAddModule(WauxlibBinderCtx *binderCtx, 
+                            char *moduleName,
+                            WrenLoadModuleFn moduleLoadModuleFn,
+                            void *moduleLoadModuleFnCtx,
+                            WrenBindForeignMethodFn moduleBindForeignMethodFn,
+                            WrenBindForeignClassFn moduleBindForeignClassFn,
+                            void *moduleBindForeignCtx)
+{
+  WauxlibModule *module = malloc(sizeof(WauxlibModule));
+  if (NULL == module)
+  {
+    return false;
+  }
+  module->loadModuleFn = moduleLoadModuleFn;
+  module->loadModuleFnCtx = moduleLoadModuleFnCtx;
+  module->bindForeignMethodFn = moduleBindForeignMethodFn;
+  module->bindForeignClassFn = moduleBindForeignClassFn;
+  module->bindForeignCtx = moduleBindForeignCtx;
+  int status;
+  khint_t itor = kh_put(modules_map, binderCtx->modules, moduleName, &status);
+  if (status < 0)
+  {
+    free(module);
+    return false;
+  }
+  kh_value(binderCtx->modules, itor) = module;
+  return true;
+}

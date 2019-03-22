@@ -2,6 +2,7 @@
 #define wauxlib_h
 
 #include <wren.h>
+#include <khash.h>
 
 typedef struct WauxlibLoaderCtx
 {
@@ -77,20 +78,35 @@ WrenForeignClassMethods wauxlibBindForeignClass(
                         const char* moduleName,
                         const char* className,
                         void *binderCtx);
+
+typedef struct WauxlibModule
+{
+  WrenLoadModuleFn loadModuleFn;
+  void *loadModuleFnCtx;
+  WrenBindForeignMethodFn bindForeignMethodFn; 
+  WrenBindForeignClassFn bindForeignClassFn; 
+  void *bindForeignCtx;
+} WauxlibModule;
+
+KHASH_MAP_INIT_STR(modules_map, WauxlibModule *);
 typedef struct
 {
-    
-} WauxlibBindCtx;
+  khash_t(modules_map) *modules;
+} WauxlibBinderCtx;
 
-#if 0
-void defaultBinderAddModule(WauxlibBindCtx *binderCtx, 
+
+WauxlibBinderCtx *defaultBinderNew();
+void defaultBinderDelete(WauxlibBinderCtx *binderCtx);
+
+
+bool defaultBinderAddModule(WauxlibBinderCtx *binderCtx, 
                             char *moduleName,
-                            WrenLoadModuleFn moduleLoadModuleFn;
-                            void *moduleLoadModuleFnCtx;
-                            WrenBindForeignMethodFn moduleBindForeignMethodFn; 
-                            WrenBindForeignClassFn moduleBindForeignClassFn; 
+                            WrenLoadModuleFn moduleLoadModuleFn,
+                            void *moduleLoadModuleFnCtx,
+                            WrenBindForeignMethodFn moduleBindForeignMethodFn,
+                            WrenBindForeignClassFn moduleBindForeignClassFn,
                             void *moduleBindForeignCtx);
-#endif
+
 
 
 #endif
