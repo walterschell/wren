@@ -37,13 +37,12 @@ typedef struct
   // The name of the module.
   const char* name;
 
-  #ifdef WAUXLIB_INLINE_MODULE_SOURCE
+#ifdef WAUXLIB_MODULE_INLINE_SOURCE
   // Pointer to the string containing the source code of the module. We use a
   // pointer here because the string variable itself is not a constant
   // expression so can't be used in the initializer below.
   const char **source;
-  #endif
-
+#endif
   ClassRegistry classes[MAX_CLASSES_PER_MODULE];
 } ModuleRegistry;
 
@@ -52,9 +51,16 @@ typedef struct
 // define a couple of macros to make it easier.
 #define SENTINEL_METHOD { false, NULL, NULL }
 #define SENTINEL_CLASS { NULL, { SENTINEL_METHOD } }
-#define SENTINEL_MODULE {NULL, NULL, { SENTINEL_CLASS } }
-
-#define MODULE(name) { #name, &name##ModuleSource, {
+#ifdef WAUXLIB_MODULE_INLINE_SOURCE
+# define SENTINEL_MODULE {NULL, NULL, { SENTINEL_CLASS } }
+#else
+# define SENTINEL_MODULE {NULL, {SENTINEL_CLASS}}
+#endif
+#ifdef WAUXLIB_MODULE_INLINE_SOURCE
+# define MODULE(name) { #name, &name##ModuleSource, {
+#else
+# define MODULE(name) { #name, {
+#endif
 #define END_MODULE SENTINEL_CLASS } },
 
 #define CLASS(name) { #name, {
@@ -92,6 +98,7 @@ KHASH_MAP_INIT_STR(modules_map, WauxlibModule *);
 typedef struct
 {
   khash_t(modules_map) *modules;
+  //TODO: Add context for loader
 } WauxlibBinderCtx;
 
 
@@ -107,6 +114,18 @@ bool defaultBinderAddModule(WauxlibBinderCtx *binderCtx,
                             WrenBindForeignClassFn moduleBindForeignClassFn,
                             void *moduleBindForeignCtx);
 
+char * defaultBinderLoadModuleFn(WrenVM *vm, const char *name, void *loaderCtx);
+WrenForeignMethodFn defaultBinderBindForeignMethodFn(WrenVM *vm,
+                                                     const char *module,
+                                                     const char *className,
+                                                     bool isStatic,
+                                                     const char *signature,
+                                                     void *binderCtx);
 
+WrenForeignClassMethods defaultBinderBindForeignClassFn(WrenVM *vm,
+                                                        const char *module,
+                                                        const char *className,
+                                                        void *binderCtx);
 
+//TODO: Function to allocate a binder ctx and set all of the pointers in a config
 #endif
