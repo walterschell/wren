@@ -2,6 +2,7 @@
 option(WAUXLIB_LOADER "Build Wauxlib loader" ON)
 option(WAUXLIB_BINDER "Build Wauxlib binder" ON)
 
+
 set(wauxlib_SRCS)
 set(wauxlib_LIBS wren)
 
@@ -10,8 +11,8 @@ if (WAUXLIB_LOADER)
 endif()
 
 if (WAUXLIB_BINDER)
-    add_subdirectory(wauxlib_hashtable)
-    list(APPEND wauxlib_LIBS whashtable)
+    add_subdirectory(deps/klib)
+    list(APPEND wauxlib_LIBS klib)
     list(APPEND wauxlib_SRCS "src/wauxlib_binder.c")
 endif()
 
