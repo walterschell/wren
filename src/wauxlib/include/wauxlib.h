@@ -2,12 +2,15 @@
 #define wauxlib_h
 #include <stdint.h>
 #include <wren.h>
-#include <khash.h>
+#ifndef WUAXLIB_BINDER
+#define WUAXLIB_BINDER
+#endif
+#ifdef WAUXLIB_BINDER
 
 
 //TODO: Move this to a config header file
-#define MAX_METHODS_PER_CLASS 14
-#define MAX_CLASSES_PER_MODULE 6
+# define MAX_METHODS_PER_CLASS 14
+# define MAX_CLASSES_PER_MODULE 6
 typedef struct
 {
   bool isStatic;
@@ -29,6 +32,7 @@ typedef struct
   // The name of the module.
   const char* name;
 
+// WUAXLIB_MODULE_INLINE_SOURCE protects a construct that was in the cli but is not yet supported
 #ifdef WAUXLIB_MODULE_INLINE_SOURCE
   // Pointer to the string containing the source code of the module. We use a
   // pointer here because the string variable itself is not a constant
@@ -77,6 +81,15 @@ WrenForeignClassMethods wauxlibBindForeignClass(
                         const char* className,
                         void *binderCtx);
 
+
+typedef struct WauxlibBinderCtx WauxlibBinderCtx;
+WauxlibBinderCtx *defaultBinderNew();
+void defaultBinderDelete(WauxlibBinderCtx *binderCtx);
+
+#ifdef WAUXLIB_DYNAMIC_PLUGINS
+typedef void (*WauxlibPluginCloseFn)(void *);
+#endif
+
 typedef struct WauxlibModule
 {
   WrenLoadModuleFn loadModuleFn;
@@ -84,29 +97,19 @@ typedef struct WauxlibModule
   WrenBindForeignMethodFn bindForeignMethodFn; 
   WrenBindForeignClassFn bindForeignClassFn; 
   void *bindForeignCtx;
+#ifdef WAUXLIB_DYNAMIC_PLUGINS
+  void *plugin_handle;
+  WauxlibPluginCloseFn plugin_close;
+#endif
 } WauxlibModule;
 
-KHASH_MAP_INIT_STR(modules_map, WauxlibModule *);
-typedef struct
-{
-  khash_t(modules_map) *modules;
-// TODO: protect with ifdef
-  WrenLoadModuleFn loader;
-  void *loaderCtx;
-} WauxlibBinderCtx;
-
-
-WauxlibBinderCtx *defaultBinderNew();
-void defaultBinderDelete(WauxlibBinderCtx *binderCtx);
-
-
-bool defaultBinderAddModule(WauxlibBinderCtx *binderCtx, 
+bool defaultBinderAddModuleRaw(WauxlibBinderCtx *binderCtx,
+                                      const char *moduleName,
+                                      WauxlibModule *module);
+bool defaultBinderAddModuleSimple(WauxlibBinderCtx *binderCtx, 
                             const char *moduleName,
-                            WrenLoadModuleFn moduleLoadModuleFn,
-                            void *moduleLoadModuleFnCtx,
-                            WrenBindForeignMethodFn moduleBindForeignMethodFn,
-                            WrenBindForeignClassFn moduleBindForeignClassFn,
-                            void *moduleBindForeignCtx);
+                            const char *moduleSource,
+                            ModuleRegistry *moduleBindForeignCtx);
 
 char * defaultBinderLoadModuleFn(WrenVM *vm, const char *name, void *loaderCtx);
 WrenForeignMethodFn defaultBinderBindForeignMethodFn(WrenVM *vm,
@@ -123,6 +126,7 @@ WrenForeignClassMethods defaultBinderBindForeignClassFn(WrenVM *vm,
 
 //TODO: Function to allocate a binder ctx and set all of the pointers in a config
 
+
 typedef struct 
 {
   uint32_t wren_version_number;
@@ -133,8 +137,15 @@ typedef struct
   void *bindForeignCtx;
 } WrenPluginInfo;
 
-bool wauxlibRegisterPlugin(WauxlibBinderCtx *binderCtx, const char *moduleName, WrenPluginInfo *pluginInfo);
 
+bool wauxlibRegisterPlugin(WauxlibBinderCtx *binderCtx,
+                           const char *moduleName,
+                           WrenPluginInfo *pluginInfo,
+                           void *plugin_handle,
+                           WauxlibPluginCloseFn plugin_close);
+#endif //WAUXLIB_BINDER
+
+#ifdef WAUXLIB_LOADER
 typedef struct WauxlibLoaderCtx
 {
   char *wren_module_path;
@@ -144,5 +155,5 @@ char* wauxlibLoader(WrenVM *vm,
                     const char *name,
                     void* loaderCtx);
 
-
+#endif //WAUXLIB_LOADER
 #endif
