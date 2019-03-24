@@ -9,7 +9,7 @@ else()
     option(ENABLE_TESTING "Build Tests" OFF)
 endif()
 option(WREN_BUILD_WAUXLIB "Build Wauxlib" ON)
-
+option(WREN_SUPPORT_PLUGINS "Support Wren Plugins" ON)
 
 set(wren_warning_flags "-Wall"
                        "-Wextra"
@@ -71,6 +71,18 @@ target_compile_options(wren
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(wren 
         PUBLIC -DDEBUG
+    )
+endif()
+
+if(WREN_SUPPORT_PLUGINS)
+    add_library(wren_plugin_interface INTERFACE)
+    target_include_directories(wren_plugin_interface INTERFACE src/include)
+    #INTERFACE_LINK_OPTIONS doesn't exist until CMake 3.13 and don't want force dep on that new
+    #So we use this hack
+    get_target_property(wren_interface_libs wren INTERFACE_LINK_LIBRARIES)
+    list(APPEND wren_interface_libs "-Wl,--dynamic-list=\"${CMAKE_CURRENT_SOURCE_DIR}/wren_exported_symbols.txt\"")
+    set_target_properties(wren PROPERTIES
+        INTERFACE_LINK_LIBRARIES "${wren_interface_libs}"
     )
 endif()
 

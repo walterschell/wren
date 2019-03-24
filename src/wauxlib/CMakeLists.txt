@@ -20,3 +20,7 @@ add_library(wauxlib STATIC ${wauxlib_SRCS})
 target_include_directories(wauxlib PUBLIC "include")
 target_compile_options(wauxlib PRIVATE "-Wall" "-Wextra" "-Werror")
 target_link_libraries(wauxlib PUBLIC ${wauxlib_LIBS})
+
+add_library(wauxlib_plugin_interface INTERFACE)
+target_include_directories(wauxlib_plugin_interface INTERFACE "include")
+target_link_libraries(wauxlib_plugin_interface INTERFACE wren_plugin_interface klib)

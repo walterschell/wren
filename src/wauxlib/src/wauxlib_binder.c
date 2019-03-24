@@ -2,6 +2,16 @@
 #include <string.h>
 #include <khash.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <dlfcn.h>
+static char default_search_path[4096];
+
+//TODO: Use something more portable
+__attribute__((constructor)) void fill_default_search_path()
+{
+ getcwd(default_search_path, sizeof(default_search_path));
+}
+
 static ModuleRegistry* findModule(const char* name, ModuleRegistry* modules)
 {
   for (int i = 0; modules[i].name != NULL; i++)
@@ -79,6 +89,16 @@ WrenForeignClassMethods wauxlibBindForeignClass(
   methods.allocate = findMethod(clas, true, "<allocate>");
   methods.finalize = (WrenFinalizerFn)findMethod(clas, true, "<finalize>");
 
+  if (NULL == methods.allocate)
+  {
+    printf("Null allocateor for %s\n", className);
+  }
+  else
+  {
+    printf("Found allocator for %s\n", className);
+  }
+  
+
   return methods;
 }
 
@@ -90,6 +110,13 @@ WauxlibBinderCtx *defaultBinderNew()
     return result;
   }
   result->modules = kh_init(modules_map);
+  //TODO: protect with ifdef
+  result->loader = wauxlibLoader;
+  //TODO: Fix this
+  WauxlibLoaderCtx *loaderCtx = malloc(sizeof(WauxlibLoaderCtx));
+  loaderCtx->wren_module_path = default_search_path;
+  result->loaderCtx = loaderCtx;
+
   return result;
 }
 void defaultBinderDelete(WauxlibBinderCtx *binderCtx)
@@ -105,7 +132,7 @@ void defaultBinderDelete(WauxlibBinderCtx *binderCtx)
 }
 
 bool defaultBinderAddModule(WauxlibBinderCtx *binderCtx, 
-                            char *moduleName,
+                            const char *moduleName,
                             WrenLoadModuleFn moduleLoadModuleFn,
                             void *moduleLoadModuleFnCtx,
                             WrenBindForeignMethodFn moduleBindForeignMethodFn,
@@ -142,8 +169,50 @@ char * defaultBinderLoadModuleFn(WrenVM *vm, const char *name, void *loaderCtx)
   if (kh_end(ctx->modules) == itor)
   {
     printf("module %s not found in default binder\n", name);
-    //TODO: Add code to search path for modules here
-    return NULL;
+    char *result = NULL;
+    //TODO: protect with ifdef
+    result = ctx->loader(vm, name, ctx->loaderCtx);
+    if (NULL == result)
+    {
+      return NULL;
+    }
+    // If result starts with . or / interpret as path to shared object
+    if (result[0] == '.' || result[0] == '/')
+    {
+      void *plugin = dlopen(result, RTLD_LAZY);
+      free(result);
+      if (NULL == plugin)
+      {
+        return NULL;
+      }
+      WrenPluginInfo *plugin_info = dlsym(plugin, "wren_mod_config");
+        if (NULL == plugin_info)
+        {
+            dlclose(dlsym);
+            return NULL;
+        }
+        else
+        {
+            if (WREN_VERSION_NUMBER != plugin_info->wren_version_number)
+            {
+            }
+            else
+            {
+                // If successful registration we should be good to call ourselves again              
+                if (wauxlibRegisterPlugin(ctx, name, plugin_info))
+                {
+                  return defaultBinderLoadModuleFn(vm, name, loaderCtx);
+                }
+                else
+                {
+                  return NULL;
+                }
+                
+            }
+            
+        }
+    }
+    
   }
   WauxlibModule *module = kh_value(ctx->modules, itor);
   if (NULL == module->loadModuleFn)
@@ -191,4 +260,17 @@ WrenForeignClassMethods defaultBinderBindForeignClassFn(WrenVM *vm,
     return wauxlibBindForeignClass(vm, moduleName, className, module->bindForeignCtx);
   }
   return module->bindForeignClassFn(vm, moduleName, className, module->bindForeignCtx);
+}
+
+bool wauxlibRegisterPlugin(WauxlibBinderCtx *binderCtx,
+                           const char *moduleName,
+                           WrenPluginInfo *pluginInfo)
+{
+  return defaultBinderAddModule(binderCtx,
+                                moduleName,
+                                pluginInfo->loadModuleFn,
+                                pluginInfo->loadModuleFnCtx,
+                                pluginInfo->bindForeignMethodFn,
+                                pluginInfo->bindForeignClassFn,
+                                pluginInfo->bindForeignCtx );
 }

@@ -1,17 +1,9 @@
 #ifndef wauxlib_h
 #define wauxlib_h
-
+#include <stdint.h>
 #include <wren.h>
 #include <khash.h>
 
-typedef struct WauxlibLoaderCtx
-{
-
-} WauxlibLoaderCtx;
-
-char* wauxlibLoader(WrenVM *vm,
-                    const char *name,
-                    void* loaderCtx);
 
 //TODO: Move this to a config header file
 #define MAX_METHODS_PER_CLASS 14
@@ -98,7 +90,9 @@ KHASH_MAP_INIT_STR(modules_map, WauxlibModule *);
 typedef struct
 {
   khash_t(modules_map) *modules;
-  //TODO: Add context for loader
+// TODO: protect with ifdef
+  WrenLoadModuleFn loader;
+  void *loaderCtx;
 } WauxlibBinderCtx;
 
 
@@ -107,7 +101,7 @@ void defaultBinderDelete(WauxlibBinderCtx *binderCtx);
 
 
 bool defaultBinderAddModule(WauxlibBinderCtx *binderCtx, 
-                            char *moduleName,
+                            const char *moduleName,
                             WrenLoadModuleFn moduleLoadModuleFn,
                             void *moduleLoadModuleFnCtx,
                             WrenBindForeignMethodFn moduleBindForeignMethodFn,
@@ -128,4 +122,27 @@ WrenForeignClassMethods defaultBinderBindForeignClassFn(WrenVM *vm,
                                                         void *binderCtx);
 
 //TODO: Function to allocate a binder ctx and set all of the pointers in a config
+
+typedef struct 
+{
+  uint32_t wren_version_number;
+  WrenLoadModuleFn loadModuleFn;
+  void *loadModuleFnCtx;
+  WrenBindForeignMethodFn bindForeignMethodFn; 
+  WrenBindForeignClassFn bindForeignClassFn; 
+  void *bindForeignCtx;
+} WrenPluginInfo;
+
+bool wauxlibRegisterPlugin(WauxlibBinderCtx *binderCtx, const char *moduleName, WrenPluginInfo *pluginInfo);
+
+typedef struct WauxlibLoaderCtx
+{
+  char *wren_module_path;
+} WauxlibLoaderCtx;
+
+char* wauxlibLoader(WrenVM *vm,
+                    const char *name,
+                    void* loaderCtx);
+
+
 #endif
