@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(libuv)
 enable_testing()
-
+option(LIBUV_TERMUX "Building on Android TERMUX" OFF)
 if(MSVC)
   list(APPEND uv_cflags /W4)
 elseif(CMAKE_C_COMPILER_ID MATCHES "AppleClang|Clang|GNU")
@@ -240,7 +240,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "AIX")
   list(APPEND uv_sources src/unix/aix.c)
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Android")
+if(CMAKE_SYSTEM_NAME STREQUAL "Android" OR LIBUV_TERMUX)
   list(APPEND uv_libs dl)
   list(APPEND uv_sources
        src/unix/android-ifaddrs.c
@@ -278,7 +278,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
        src/unix/fsevents.c)
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT LIBUV_TERMUX)
   list(APPEND uv_defines _GNU_SOURCE _POSIX_C_SOURCE=200112)
   list(APPEND uv_libraries dl rt)
   list(APPEND uv_sources
@@ -337,7 +337,7 @@ target_link_libraries(uv ${uv_libraries})
 add_library(uv_a STATIC ${uv_sources})
 target_compile_definitions(uv_a PRIVATE ${uv_defines})
 target_compile_options(uv_a PRIVATE ${uv_cflags})
-target_include_directories(uv_a PRIVATE include src)
+target_include_directories(uv_a PUBLIC include PRIVATE src)
 target_link_libraries(uv_a ${uv_libraries})
 
 if(BUILD_TESTING)
